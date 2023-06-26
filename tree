@@ -1,0 +1,52 @@
+# Решающие деревья (decision trees)
+# Дерево решений — это метод представления решающих правил в иерархической структуре, состоящей из элементов двух типов — узлов (node) и листьев (leaf). 
+# В узлах находятся решающие правила и производится проверка соответствия примеров этому правилу по какому-либо атрибуту обучающего множества.
+
+# классификация
+from sklearn.tree import DecisionTreeClassifier 
+from sklearn import datasets
+
+
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+
+clf = DecisionTreeClassifier(max_depth=3)
+clf.fit(X, y)
+
+from sklearn import tree
+
+text_representation = tree.export_text(clf)
+print(text_representation)
+
+from matplotlib import pyplot as plt
+
+fig = plt.figure(figsize=(25,20))
+_ = tree.plot_tree(clf, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
+
+# регрессия
+
+from sklearn.tree import DecisionTreeRegressor 
+from sklearn import datasets
+
+
+diab = datasets.load_diabetes()
+X = diab.data
+y = diab.target
+
+reg = DecisionTreeRegressor(max_depth=3)
+reg.fit(X, y)
+
+text_representation = tree.export_text(reg)
+print(text_representation)
+
+from matplotlib import pyplot as plt
+
+fig = plt.figure(figsize=(25,20))
+_ = tree.plot_tree(reg, feature_names=diab.feature_names, filled=True)
+
+# Ансамбли
+# Бэггинг -Метод случайного леса (англ. random forest)
+# Бустинг -Бустинг над решающими деревьями
+# стекинг
+# https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
