@@ -1,0 +1,119 @@
+# регрессия
+# загрузите датасет для регрессии
+
+import pandas as pd
+data = pd.read_csv('../data/regression/apartment_data_preprocessed.csv')
+data.drop(['Unnamed: 0'], axis=1, inplace=True)
+data
+
+# выделите целевой признак и предикторы
+
+y = data["SalePrice"]
+X = data.drop(["SalePrice"], axis=1)
+y
+X
+
+# разбейте данные на обучающую и тестовую выборку;
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+# указав параметр test_size = 0.2 получим, что 20% данных уйдут в тестовую выборку
+# также в функцию можно передать параметр shuffle: по умолчанию функция рандомно перемешивает данные; поэтому и модели будут получаться разные;
+# задайте параметр shuffle = False, если не хотите перемешивать
+
+X_train.shape, y_train.shape, X_test.shape, y_test.shape
+
+# решите задачу регрессии на ваших данных с использованием моделей sklearn (линейная регрессия + L1, L2), для моделей с регуляризациями подберите гиперпараметр;
+# Регуляризация в линейной регрессии (L1 / Ridge и L2 / Lasso) 
+# Регуляризация - это наложение дополнительных ограничений на значения переменных (весов). 
+# неявное ограничение добавляется непосредственно в целевую функцию. Цель регуляризации - предотвращение так называемого переобучения.
+# Параметр α определяет интенсивность регуляризации. Он принимает значения от 0 до 1 включительно
+
+# ну, названия импортируемых моделей, вам теперь знакомы
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+# это обучение модели (на обучающей выборке)
+lr = LinearRegression().fit(X_train, y_train)
+# а это получение предсказания (предскажем для всех тестовой выборки)
+lr.predict(X_test)
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
+from math import sqrt
+# получаем предсказания для тестовой выборки
+y_pred = lr.predict(X_test)
+print(f'MAE: {mean_absolute_error(y_test, y_pred)}')
+print(f'MSE: {mean_squared_error(y_test, y_pred)}')
+print(f'RMSE: {sqrt(mean_squared_error(y_test, y_pred))}')
+print(f'MAPE: {sqrt(mean_absolute_percentage_error(y_test, y_pred))}')
+print(f'R^2: {lr.score(X_test, y_test)}')
+# можем посмотреть какие получились коэффициенты в модели (значения весов)
+len(lr.coef_)
+lr.coef_
+# Теперь попробуем применить регуляризации.
+# L1
+ridge = Ridge(alpha=0.5).fit(X_train, y_train)
+y_pred = ridge.predict(X_test)
+print(f'MAE: {mean_absolute_error(y_test, y_pred)}')
+print(f'MSE: {mean_squared_error(y_test, y_pred)}')
+print(f'RMSE: {sqrt(mean_squared_error(y_test, y_pred))}')
+print(f'MAPE: {sqrt(mean_absolute_percentage_error(y_test, y_pred))}')
+print(f'R^2: {ridge.score(X_test, y_test)}')
+ridge.coef_
+# L2
+lasso = Lasso(alpha=0.5).fit(X_train, y_train)
+y_pred = lasso.predict(X_test)
+print(f'MAE: {mean_absolute_error(y_test, y_pred)}')
+print(f'MSE: {mean_squared_error(y_test, y_pred)}')
+print(f'RMSE: {sqrt(mean_squared_error(y_test, y_pred))}')
+print(f'MAPE: {sqrt(mean_absolute_percentage_error(y_test, y_pred))}')
+print(f'R^2: {lasso.score(X_test, y_test)}')
+lasso.coef_
+#Поэтому нам важно научиться подбирать параметры. Делать это можно с помощью sklearn, а конкретно двух объектов - GridSearchCV и RandomizedSearchCV. Попробуем их и посмотрим, в чем отличие.
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+import numpy as np
+# для поиска гиперпараметров мы всегда сначала формируем словарь
+# ключами словаря являются названия гиперпараметров
+# значениями - список (или массив numpy) с возможными значениями
+# параметры описываются в документации к моделям, так что можно и нужно гуглить
+parameters = {'alpha': np.arange(0, 1, 0.1)}
+# а теперь пробуем подобрать значение этого гиперпараметра с помощью GridSearchCV
+# оборачиваем нашу модель в объект GridSearchCV, туда же передаем словарь с параметрами и стартуем обучение
+ridge_optimal = GridSearchCV(Ridge(), parameters).fit(X_train, y_train)
+# выводим оптимальные значения параметров
+ridge_optimal.best_params_
+#GridSearchCV перебирает все возможные варианты. RandomizedSearchCV (понятно из названия) будет перебирать только случайные варианты. Это актуально, когда подбирается несколько гиперпараметров. 
+ridge_optimal = RandomizedSearchCV(Ridge(), parameters).fit(X_train, y_train)
+# выводим оптимальные значения параметров
+ridge_optimal.best_params_
+
+
+# решите задачу регрессии на ваших данных с использованием моделей sklearn (полиномиальная регрессия + L1, L2), для моделей с регуляризациями подберите гиперпараметр
+# Использование полиномов в линейной регрессии
+# Если в модели линейной регрессии значения всех предикторов входят со степенью 1, 
+# то в случае полиномиальной регрессии модель подбирает коэффициенты в большом полиноме, в котором значения предикторов входят с более высокими степенями. 
+# Суть полиномиальной регрессии - мы добавляем новые предикторы и используем ту же модель линейной регрессии. Давайте сделаем регрессию со степенью полинома 2.
+
+from sklearn.preprocessing import PolynomialFeatures
+# создаем объект, который позволит расширить множество предикторов
+p = PolynomialFeatures(2)  
+# добавляем новые предикторы
+X_p=pf.fit_transform(X) 
+X_p
+lr2 = LinearRegression().fit(X_p, y)
+lr2.coef_
+
+# Давайте немного порисуем, чтобы увидеть :)
+
+X_d = X
+y_d = lr2.coef_[0][2] + lr2.coef_[0][1]*X_d + lr2.coef_[0][0]*X_d**2
+y_d
+import matplotlib.pyplot as plt
+plt.scatter(X, y, label='Истинные значения');
+plt.plot(X, lr.predict(X), label='Предсказанные значения (линейная регрессия)');
+plt.scatter(X, lr2.predict(X_p), label='Предсказанные значения (полиномиальная регрессия)');
+plt.legend();
+
+# вычислите значения метрик R2, MAE, MSE, RMSE, MAPE для всех обученных моделей; выберите лучшую модель;
+# средняя абсолютная ошибка (Mean Absolute Error, MAE);
+# средняя квадратичная ошибка (Mean Squared Error, MSE);
+# квадратный корень из средней квадратичной ошибки (Root Mean Squared Error);
+# средняя абсолютная ошибка в процентах (Mean Absolute Percentage Error, MAPE);
+# коэффициент детерминации (R2)т 0 до 1 включительно.
