@@ -1,0 +1,99 @@
+# Классификация
+# В качестве целевого признака в задаче классификации обычно выступают: бинарный, категориальный, порядковый
+ 
+from sklearn.datasets import make_classification
+import matplotlib.pyplot as plt
+
+
+X_binary, y_binary = make_classification(n_samples=10000, n_features=2, n_redundant=0, n_clusters_per_class=2, weights=[0.9, 0.1], flip_y=0, random_state=42)
+
+plt.scatter(X_binary[:, 0], X_binary[:, 1], marker="o", c=y_binary, s=25, edgecolor="k")
+plt.show()
+
+X_multi, y_multi = make_classification(n_samples=10000, n_features=2, n_redundant=0, n_informative=2, n_clusters_per_class=1, weights=[0.4, 0.4, 0.2], n_classes=3, random_state=42)
+
+plt.scatter(X_multi[:, 0], X_multi[:, 1], marker="o", c=y_multi, s=25, edgecolor="k")
+plt.show()
+
+# загрузите датасет для классификации, проведите предобработку, выделите целевой признак и предикторы, разбейте данные на обучающую и тестовую выборку
+
+# Масштабируйте числовые признаки
+# Масштабирование значений признаков
+# Standart Scaller: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html
+# MinMaxScaller: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
+
+# В случае дисбаланса проведите балансировку
+# Работа с дисбалансом классов (imbalanced-learn)
+# Down sampling -- удаляем объекты мажоритарного класса
+# Upper sampling -- добавляем объекты миноритарного класса (дублирование, SMOTE)
+
+# решите задачу классификации на ваших данных с использованием рассмотренных моделей sklearn: knn, NB, Logistic Regression, SVM. Не забудьте подобрать гиперпараметры.
+
+# Метод k-ближайших соседей
+# kNN, k-nearest neighbors Простейший метрический классификатор, основанный на оценивании сходства объектов. 
+# Классифицируемый объект относится к тому классу, которому принадлежат ближайшие к нему объекты обучающей выборки.
+# Варианты:
+# n - количество классов,  k - количество соседей
+# Метод ближайшего соседа:  n  -- любое,  k=1 . Классифицируемый объект относится к тому классу, которому принадлежит ближайший объект обучающей выборки.
+# Метод k ближайших соседей:  n  -- любое,  k  -- любое. При  n=2  берут нечётное количество соседей, чтобы не возникало ситуаций неоднозначности.
+# Метод взвешенных ближайших соседей:  n  -- любое,  k  -- любое. При  n≥3  может возникать неоднозначность. Тогда  i -му соседу приписывается вес  wi , как правило, убывающий с ростом ранга соседа  i . Объект относится к тому классу, который набирает больший суммарный вес среди  k  ближайших соседей.
+
+from sklearn.model_selection import train_test_split
+# https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+from sklearn.neighbors import KNeighborsClassifier
+
+X_train, X_test, y_train, y_test = train_test_split(X_binary, y_binary, test_size=0.33, random_state=42)
+
+knn = KNeighborsClassifier(n_neighbors=5, metric='minkowski', p=2) # метрику влепить
+knn.fit(X_train, y_train)
+
+y_bin_knn_pred = knn.predict(X_test)
+
+# Байесовский классификатор
+# https://scikit-learn.org/stable/modules/naive_bayes.html
+from sklearn.naive_bayes import GaussianNB
+
+gnb = GaussianNB()
+gnb.fit(X_train, y_train)
+y_pred = gnb.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+# Логистическая регрессия
+# https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
+from sklearn.linear_model import LogisticRegression
+
+clf = LogisticRegression(random_state=0).fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+# SVM
+# https://scikit-learn.org/stable/modules/svm.html
+from sklearn import svm
+
+clf = svm.SVC()
+clf.fit(X_train, y_train)
+
+y_pred = clf.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+# вычислите значения метрик Accuracy, Precision, Recall, F1, ROC AUC score/ Метрики качества
+
+# accuracy = (количество верно классифицированных объектов) / (общее количество объектов)
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html
+from sklearn.metrics import accuracy_score
+accuracy_score(y_test, y_bin_knn_pred)
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+from sklearn.metrics import confusion_matrix
+confusion_matrix(y_test, y_bin_knn_pred)
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_bin_knn_pred))
+
+# ROC AUC score
+# https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+import matplotlib.pyplot as plt
+from sklearn.metrics import plot_roc_curve
+plot_roc_curve(knn, X_test, y_test)
+
