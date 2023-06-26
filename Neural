@@ -1,0 +1,171 @@
+# Полносвязные нейронные сети (многослойный персептрон). Решение задач регрессии и классификации
+
+# Использование фреймворка TensorFlow и API Keras для построеония нейронных сетей
+
+import pandas as pd
+data_regression = pd.read_csv("../data/regression/apartment_data_preprocessed.csv")
+data_classification = pd.read_csv("../data/classification/bank_churners_preprocessed.csv")
+
+data_regression.drop(columns = ["Unnamed: 0"], inplace=True)
+data_classification.drop(columns = ["Unnamed: 0"], inplace=True)
+
+data_regression.head()
+
+data_classification.head()
+
+y_regression = data_regression["SalePrice"]
+X_regression = data_regression.drop(columns = ['SalePrice'])
+y_classification = data_classification['Attrition_Flag']
+X_classification = data_classification.drop(columns = ['Attrition_Flag'])
+
+from sklearn.model_selection import train_test_split
+X_regression_train, X_regression_test, y_regression_train, y_regression_test = train_test_split(X_regression,
+                                                                                                y_regression,
+                                                                                                test_size=0.2)
+X_classification_train, X_classification_test, y_classification_train, y_classification_test = train_test_split(X_classification,
+                                                                                                                y_classification,
+                                                                                                                stratify=y_classification,
+                                                                                                                test_size=0.2)
+# для оценки качества решения задачи регрессии
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+# для оценки качества решения задачи классификации
+from sklearn.metrics import confusion_matrix, classification_report
+import tensorflow as tf
+import numpy as np
+
+#Регрессия
+
+# создаем модель, как набор последовательных слоев
+model_regression = tf.keras.Sequential(
+    [
+        # Dense - полносвязный слой (каждый нейрон следующего слоя связан со всеми нейронами предыдущего)
+        tf.keras.layers.Dense(64, activation="relu", input_shape=(40,)),
+        # на втором скрытом слое будет 32 нейрона
+        tf.keras.layers.Dense(32, activation="linear"),
+        # Dropout позволяет внести фактор случайности - при обучении часть нейронов будет отключаться
+        # каждый нейрон, в данном случае, будет отключаться с вероятностью 0.1
+        tf.keras.layers.Dropout(0.1),
+        tf.keras.layers.Dense(16, activation="relu"),
+        tf.keras.layers.Dropout(0.1),
+        # на выходе один нейрон, функция активации не применяется
+        tf.keras.layers.Dense(1, activation="linear"),
+    ]
+)
+
+# посмотрим, какая сеть у нас получилась
+model_regression.summary()
+
+# Видим количество обучаемых параметров каждого слоя и общее количество обучаемых параметров. 
+# Перед использованием модель необходимо скомпилировать, при этом указывается оптимизатор, скорость обучения 
+# (можно представлять как величину шага в методе градиентного спуска), 
+# функция потерь и метрики, которые мы хотим (при желании) вычислять в будущем методом evaluate().
+
+# компилируем
+model_regression.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.005), loss="mse")
+
+# обучаем, 10 эпох означает 10 проходов по обучающей выборке
+model_regression.fit(X_regression_train, y_regression_train, epochs=50)
+
+
+# оцениваем качество с помощью метрик
+print(mean_absolute_error(y_regression_test, model_regression.predict(X_regression_test)))
+print(mean_squared_error(y_regression_test, model_regression.predict(X_regression_test)))
+
+# Бинарная классификация
+# Нейронная сеть для решения задачи классификации будет очень похожа на ту сеть для регрессии, однако у нее по другому будет организован выходной слой. 
+# У нас есть 2 стратегии наполнения выходного слоя нейронами:
+# при решении задачи бинарной классификации мы можем расположить на выходном слое один нейрон с функцией активации sigmoid (значения от 0 и 1), после чего округлять полученные значения; значение нейрона покажет уверенность сети в предсказании; также мы можем расположить 2 нейрона на выходном слое и применить функцию softmax. Тогда сумма значений нейронов выходного слоя будет 1, а предсказание мы сможем получить определив нейрон с наибольшим значением;
+# в случае многоклассовой классификации, как правило, на выходном слое располагаются k нейронов (по количеству классов), функция активации - softmax; нейрон с наибольшим значением определяет предсказанный класс.
+
+model_classification_1 = tf.keras.Sequential(
+    [
+        tf.keras.layers.Dense(64, activation="relu", input_shape=(23,)),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dropout(0.05),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(32, activation="relu"),
+        tf.keras.layers.Dense(16, activation="relu"),
+        # сначала используем 1 нейрон и sigmoid
+        tf.keras.layers.Dense(1, activation="sigmoid"),
+    ]
+)
+# в качестве функции активации используется бинарная  кроссэнтропия
+model_classification_1.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss="mse")
+# verbose=None - не будет логов
+model_classification_1.fit(X_classification_train, y_classification_train, epochs=25, verbose=None)
+model_classification_1.predict(X_classification_test, verbose=None)[:5]
+
+#Это числа от 0 до 1, поскольку мы использовали sigmoid. Для того, чтобы получить финальное предсказания классов, необходимо округлить все полученные значения.
+
+y_pred = np.around(model_classification_1.predict(X_classification_test, verbose=None))
+print(classification_report(y_classification_test, y_pred))
+print(confusion_matrix(y_classification_test, y_pred))
+
+# Но, даже без выполнения балансировки, можно взвесить функцию потерь. Можем указать веса (параметр class_weight), которые будут использоваться при оптимизации функции ошибки. 
+# В качестве весов классов можно задать величины, обратные количеству элементов класса.
+
+w0 = 1 / y_classification_train[y_classification_train==0].shape[0]
+w1 = 1 / y_classification_train[y_classification_train==1].shape[0]
+
+model_classification_1 = tf.keras.Sequential(
+    [
+        tf.keras.layers.Dense(64, activation="relu", input_shape=(23,)),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dropout(0.05),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(32, activation="relu"),
+        tf.keras.layers.Dense(16, activation="relu"),
+        # используем 1 нейрон и sigmoid
+        tf.keras.layers.Dense(1, activation="sigmoid"),
+    ]
+)
+model_classification_1.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.005), loss="binary_crossentropy")
+model_classification_1.fit(X_classification_train, y_classification_train, epochs=25, verbose=None,
+                           class_weight={0: w0, 1: w1})
+y_pred = np.around(model_classification_1.predict(X_classification_test, verbose=None))
+print(classification_report(y_classification_test, y_pred))
+print(confusion_matrix(y_classification_test, y_pred))
+
+# Видим улучшения. Можем поиграть с архитектурой и параметрами и добиться еще более качественных результатов. 
+# Но напоследок давайте попробуем разместить 2 нейрона на выходном слое и использовать softmax в качестве функции активации.
+
+model_classification_2 = tf.keras.Sequential(
+    [
+        tf.keras.layers.Dense(64, activation="relu", input_shape=(23,)),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dropout(0.05),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(32, activation="relu"),
+        tf.keras.layers.Dense(16, activation="relu"),
+        # сначала используем 2 нейрона и softmax
+        tf.keras.layers.Dense(2, activation="softmax"),
+    ]
+)
+# в качестве функции активации используется категориальная кроссэнтропия
+# используем разряженный (sparse) вариант, поскольку значения целевого признака не закодированы One-Hot кодированием
+model_classification_2.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.005), loss="sparse_categorical_crossentropy")
+model_classification_2.fit(X_classification_train, y_classification_train, epochs=25, verbose=None,
+                           class_weight={0: w0, 1: w1})
+
+model_classification_2.predict(X_classification_test, verbose=None)[:5]
+# Каждое предсказание - это два числа (потому что два нейрона). Сумма значений равна 1. 
+# Каждое значение можно интерпретировать как вероятность отнесения объекта к соответствующему классу (0 или 1). 
+# Воспользуемся функцией argmax для того, чтобы получить итоговые предсказания.
+
+# получим индексы максимального значения для каждого элемента (вложенный массив) с помощью numpy
+y_pred = [np.argmax(pred) for pred in model_classification_2.predict(X_classification_test, verbose=None)]
+
+print(classification_report(y_classification_test, y_pred))
+print(confusion_matrix(y_classification_test, y_pred))
+
+# Когда мы закончили обучение моделей, мы можем сохранить их на диск
+model_regression.save('../models/RegressionModel')
+model_classification_1.save('../models/ClassificationModel1')
+model_classification_2.save('../models/ClassificationModel2')
+
+model_regression_restored = tf.keras.models.load_model('../models/RegressionModel')
+model_regression_restored.summary()
+
+# используем модель
+print(mean_absolute_error(y_regression_test, model_regression_restored.predict(X_regression_test, verbose=None)))
+print(mean_squared_error(y_regression_test, model_regression_restored.predict(X_regression_test, verbose=None)))
