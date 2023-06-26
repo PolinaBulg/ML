@@ -1,0 +1,24 @@
+# предобработка
+#1) заполнение пропущенных значений 
+#2) преобразование категориальных признаков в числовые (используйте one-hot кодирование или map)
+# Сделайте это один раз и сохраните в отдельный csv файл, а потом его используйте.
+
+from sklearn.datasets import make_classification
+import matplotlib.pyplot as plt
+
+
+data, data_y = make_classification(n_samples=300, n_classes=2, n_features=2, n_redundant=0, n_clusters_per_class=2, flip_y=0, random_state=110)
+
+# как видит классификатор
+plt.scatter(data[:, 0], data[:, 1], marker="o", c=data_y, s=25, edgecolor="k")
+plt.show()
+
+
+data = pd.read_csv('LABA2_0.csv', sep=',')
+data
+
+data.to_csv('copy.csv', index=False)
+data2 = pd.read_csv('copy.csv')
+data2
+
+
