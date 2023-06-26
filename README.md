@@ -1,6 +1,8 @@
 # ML
 ML_labs
 
+https://pseudocoder.ru/ml-labs
+
 https://analyticsindiamag.com/a-complete-guide-to-categorical-data-encoding/
 
 ![image](https://github.com/PolinaBulg/ML/assets/61691999/88470a6b-b6de-402b-8c40-70fb590e913b)
