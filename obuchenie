@@ -1,0 +1,137 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+%cd /content/drive/My Drive/Colab Notebooks/
+
+df = pd.read_csv("pump.csv")
+
+df
+
+df.drop(columns=["Unnamed: 0"], inplace=True)
+
+df.isnull().sum()
+
+df.info()
+
+df.describe()
+
+columns = df.columns
+columns
+
+c = list(columns)
+c
+
+c = c[1:-1]
+c
+
+for i in c:
+  df[c] = df[c].fillna(df[c].mean())
+
+df.isnull().sum()
+
+df = df.drop_duplicates()
+df
+
+df[['year','month', 'number']] = df.timestamp.str.split("-", expand=True)
+df[['number','time']] = df.number.str.split(" ", expand=True)
+df[['hours','minutes', 'seconds']] = df.time.str.split(":", expand=True)
+df.drop(columns=['timestamp','time'], inplace=True)
+
+ПРЕДВАРИТЕЛЬНОЕ ИЗУЧЕНИЕ
+# Гистограмма позволяет определить форму распределения, а также выбросы и аномалии выбраного столбца
+plt.hist(df['sensor_00'], bins=30)
+
+# Ящик с усами представляет распределение данных через квартили, медиану и выбросы
+plt.boxplot(df['sensor_04'])
+
+# Линейный график показывает изменение значения переменной по другой независимой переменной
+plt.plot(df['sensor_05'], df['machine_status'])
+plt.plot(df['sensor_14'], df['machine_status'])
+plt.plot(df['sensor_35'], df['machine_status'])
+
+# Диаграмма рассеяния помогает идентифицировать корреляцию, кластеры, выбросы
+plt.scatter(df['sensor_35'], df['machine_status'])
+
+from sklearn.preprocessing import LabelEncoder
+labelencoder = LabelEncoder()
+data_new = labelencoder.fit_transform(df.machine_status)
+data_new
+data = df
+data["machine_status"]=data_new
+data
+
+data.drop(columns=['minutes',	'seconds'], inplace=True)
+data
+
+y = data['machine_status']
+X = data.drop(['machine_status'], axis=1)
+
+from imblearn.under_sampling import RandomUnderSampler
+
+print(f"Количество объектов каждого класса до under_sampling: \n{y.value_counts()}")
+underSampler = RandomUnderSampler(sampling_strategy='majority')
+X_under_sample, y_under_sample = underSampler.fit_resample(X, y)
+print(f"Количество объектов каждого класса после under_sampling: \n{y_under_sample.value_counts()}")
+
+from imblearn.under_sampling import NearMiss
+nm = NearMiss()
+X, y = nm.fit_resample(X, y)
+np.unique(y, return_counts=True)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X_under_sample, y_under_sample, test_size=0.2, random_state = 4)
+X_train.shape, y_train.shape, X_test.shape, y_test.shape
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+scaler.fit(X_train, y_train)
+X_train_std = scaler.transform(X_train)
+X_test_std = scaler.transform(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_auc_score
+
+def plot_roc_curve(y_true, probs):
+    probs = probs[:, 1]
+    auc_ = roc_auc_score(y_true, probs)
+    print(' ROC AUC=%.3f' % (auc_))
+    fpr, tpr, treshold = roc_curve(y_true, probs)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, color='purple',
+            label='ROC кривая (AUC = %0.2f)' % roc_auc)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC-кривая')
+    plt.legend(loc="lower right")
+    plt.show()
+
+def showMetrics(y_true, y_predict, y_proba):
+    print(f"Accuracy: {accuracy_score(y_true, y_predict)}")
+    print(f"Confusion matrix:\n {confusion_matrix(y_true, y_predict)}")
+    print(f"Precision, Recall, F-score:\n{classification_report(y_true, y_predict)}")
+    #plot_roc_curve(y_true, y_proba)
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
+
+from sklearn.ensemble import ExtraTreesClassifier
+model = ExtraTreesClassifier()
+
+model.fit(X, y)
+
+print(model.feature_importances_)
+
+import pickle
+
+pickle.dump(knn, open('knn.sav', 'wb'))
+pickle.dump(bag, open('bag.sav', 'wb'))
+pickle.dump(svm, open('svm.sav', 'wb'))
