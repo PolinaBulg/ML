@@ -2,6 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+import pandas as pd
+from google.colab import drive
+drive.mount('/content/drive')
+
+data = pd.read_csv('/content/drive/MyDrive/pump.csv')
+data.head(50)
+
 from google.colab import drive
 drive.mount('/content/drive')
 
@@ -45,6 +52,12 @@ df.drop(columns=['timestamp','time'], inplace=True)
 # Гистограмма позволяет определить форму распределения, а также выбросы и аномалии выбраного столбца
 plt.hist(df['sensor_00'], bins=30)
 
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+plt.hist(data['machine_status'], bins = 10, edgecolor = 'k');
+plt.xlabel('machine_status'); plt.ylabel('Количество насосов');
+plt.title('Состояния насоса');
+
 # Ящик с усами представляет распределение данных через квартили, медиану и выбросы
 plt.boxplot(df['sensor_04'])
 
@@ -56,6 +69,13 @@ plt.plot(df['sensor_35'], df['machine_status'])
 # Диаграмма рассеяния помогает идентифицировать корреляцию, кластеры, выбросы
 plt.scatter(df['sensor_35'], df['machine_status'])
 
+import seaborn as sns
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.scatter(x = data['sensor_00'], y = data['machine_status'])
+plt.ylabel("Состояние насоса")
+
+plt.show()
+
 from sklearn.preprocessing import LabelEncoder
 labelencoder = LabelEncoder()
 data_new = labelencoder.fit_transform(df.machine_status)
@@ -64,8 +84,13 @@ data = df
 data["machine_status"]=data_new
 data
 
+data["machine_status"] = data["machine_status"].map({"BROKEN": 0, "RECOVERING": 1, "NORMAL": 2})
+data
+
 data.drop(columns=['minutes',	'seconds'], inplace=True)
 data
+
+data.to_csv('/content/drive/MyDrive/d.csv')
 
 y = data['machine_status']
 X = data.drop(['machine_status'], axis=1)
@@ -135,3 +160,12 @@ import pickle
 pickle.dump(knn, open('knn.sav', 'wb'))
 pickle.dump(bag, open('bag.sav', 'wb'))
 pickle.dump(svm, open('svm.sav', 'wb'))
+
+!pip install -q numpy pandas scikit-learn streamlit
+data.to_csv('data.csv', index=False)
+
+!npm install localtunnel
+! curl https://ipinfo.io/ip
+!streamlit run /content/app.py &>/content/logs.txt &
+! fuser -k 8501/tcp
+!npx localtunnel --port 8501
