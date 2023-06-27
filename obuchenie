@@ -6,7 +6,7 @@ import pandas as pd
 from google.colab import drive
 drive.mount('/content/drive')
 
-data = pd.read_csv('/content/drive/MyDrive/pump.csv')
+data = pd.read_csv('/content/drive/MyDrive/d.csv')
 data.head(50)
 
 from google.colab import drive
@@ -14,7 +14,7 @@ drive.mount('/content/drive')
 
 %cd /content/drive/My Drive/Colab Notebooks/
 
-df = pd.read_csv("pump.csv")
+df = pd.read_csv("d.csv")
 
 df
 
